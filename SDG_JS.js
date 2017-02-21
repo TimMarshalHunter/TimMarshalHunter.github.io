@@ -40,13 +40,13 @@ function load() {
     preload.addEventListener("complete", init);
 
     preload.loadManifest([
-        { id: "Background", src: "http://i857.photobucket.com/albums/ab138/Sarakus/Game%20Assets/Background_zpskobkr5xl.png" },
-        { id: "Overlay", src: "http://i857.photobucket.com/albums/ab138/Sarakus/Game%20Assets/Overlay_zpsgcjvpvxl.png" },
-        { id: "PlayerShip", src: "http://i857.photobucket.com/albums/ab138/Sarakus/Game%20Assets/PlayerShip_zpszu451wks.png" },
-        { id: "EnemyRed", src: "http://i857.photobucket.com/albums/ab138/Sarakus/Game%20Assets/EnemyShip1_zpsvi2wnzj0.png" },
-        { id: "EnemyPurple", src: "http://i857.photobucket.com/albums/ab138/Sarakus/Game%20Assets/EnemyShip2_zpssqrwp1ur.png" },
-        { id: "ShotBlue", src: "http://i857.photobucket.com/albums/ab138/Sarakus/Game%20Assets/ShotBlue_zpsfplvo92t.png" },
-        { id: "ShotPurple", src: "http://i857.photobucket.com/albums/ab138/Sarakus/Game%20Assets/ShotPurple_zpsb0e3hylp.png" },
+        { id: "Background", src: "/assets/Background.png" },
+        { id: "Overlay", src: "/assets/Overlay.png" },
+        { id: "PlayerShip", src: "/assets/PlayerShip.png" },
+        { id: "EnemyRed", src: "/assets/EnemyShip1.png" },
+        { id: "EnemyPurple", src: "/assets/EnemyShip2.png" },
+        { id: "ShotBlue", src: "/assets/ShotBlue.png" },
+        { id: "ShotPurple", src: "/assets/ShotPurple.png" },
         { id: "Music", src:"/assets/WindSprite.mp3"}
         ]);
   
@@ -61,7 +61,7 @@ function init() {
 
     //Create background image
     var bg = new createjs.Bitmap(preload.getResult("Background"));
-    bg.setTransform(0, 0, 1.17, 1.2);
+    bg.setTransform(0, 0, 1, 1);
     stage.addChild(bg);
 
     //Create player
@@ -76,7 +76,7 @@ function init() {
     
     //UI overlay
     var ol = new createjs.Bitmap(preload.getResult("Overlay"));
-    ol.setTransform(0, 600, 1.17, 1.2);
+    ol.setTransform(0, 600, 1, 1);
     stage.addChild(ol);
 
     //Setup score counter
