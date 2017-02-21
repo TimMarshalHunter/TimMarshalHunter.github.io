@@ -40,8 +40,8 @@ function load() {
     preload.addEventListener("complete", init);
 
     preload.loadManifest([
-        { id: "Background", src: "/assets/Background.png" },
-        { id: "Overlay", src: "/assets/Overlay.png" },
+        { id: "Background", src: "assets/Background.png" },
+        { id: "Overlay", src: "assets/Overlay.png" },
         { id: "PlayerShip", src: "/assets/PlayerShip.png" },
         { id: "EnemyRed", src: "/assets/EnemyShip1.png" },
         { id: "EnemyPurple", src: "/assets/EnemyShip2.png" },
