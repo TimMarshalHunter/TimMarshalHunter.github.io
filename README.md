@@ -1,7 +1,7 @@
 # TimMarshalHunter.github.io
 Team project for SDG.
 
-WARNING: Still in first iteration of game, so there is no built in restart on game over. Need to refresh the page to start over.
+WARNING: No built in restart on game over. Need to refresh the page to start over.
 
 Controls:
 W : Move player ship up.
