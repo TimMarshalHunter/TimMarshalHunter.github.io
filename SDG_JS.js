@@ -37,7 +37,8 @@ var score = 0;
 var scoreText = new createjs.Text("Score: ", "60px Arial", "#ffffff");
 
 //Effects
-var exSheet; //Explosion sprite
+var exSheet; //Explosion sprite sheet
+var eEngine; //Enemy thruster sprite sheet
 var blast;
 var laser;
 
@@ -58,7 +59,9 @@ function load() {
         { id: "EnemyPurple", src: "/assets/EnemyShip2.png" },
         { id: "ShotBlue", src: "/assets/ShotBlue.png" },
         { id: "ShotPurple", src: "/assets/ShotPurple.png" },
-        { id: "Explosion", src: "/assets/Explosion.png"},
+        { id: "Explosion", src: "/assets/Explosion.png" },
+        { id: "EnemyEngine", src: "/assets/EnemyEngine.png" },
+        { id: "PlayerEngine", src: "/assets/PlayerEngine.png"},
         { id: "Music", src: "/assets/WindSprite.mp3" },
         { id: "Blast", src: "/assets/Blast.mp3" },
         { id: "Laser", src: "/assets/Laser.mp3" }
@@ -78,25 +81,48 @@ function init() {
     bg.setTransform(0, 0, 1, 1);
     stage.addChild(bg);
 
+    //Sprite Sheet creation
+    exSheet = new createjs.SpriteSheet({
+        framerate: 30,
+        images: [preload.getResult("Explosion")],
+        frames: { width: 150, height: 150, count: 6},
+        animations: {
+            "explode": [0, 5, "explode", 0.5]
+        }
+    });
+
+    eEngine = new createjs.SpriteSheet({
+        framerate: 30,
+        images: [preload.getResult("EnemyEngine")],
+        frames: { width: 40, height: 75, count: 3 },
+        animations: {
+            "burn": [0, 2, "burn", 0.5]
+        }
+    });
+
+    var pEngine = new createjs.SpriteSheet({
+        framerate: 30,
+        images: [preload.getResult("PlayerEngine")],
+        frames: { width: 40, height: 75, count: 3 },
+        animations: {
+            "burn": [0, 2, "burn", 0.5]
+        }
+    });
+
     //Create player
-    player = new createjs.Bitmap(preload.getResult("PlayerShip"));
+    player = new createjs.Container();
     player.set({ x: playerX, y: playerY });
+    var burn = new createjs.Sprite(pEngine, "burn");
+    burn.set({ x: -20});
+    player.addChild(burn);
+    playerImage = new createjs.Bitmap(preload.getResult("PlayerShip"));
+    player.addChild(playerImage);
     stage.addChild(player);
     stage.addEventListener("mousedown", createBullet);
     setControls();
 
     //Play background music
     createjs.Sound.play('Music', createjs.Sound.INTERRUPT_NONE, 0, 0, -1, .5, 0);
-
-    //Sprite Sheet creation
-    exSheet = new createjs.SpriteSheet({
-        framerate: 30,
-        images: [preload.getResult("Explosion")],
-        frames: { width: 150, height: 150, count: 6, regX: 0, regY: 0 },
-        animations: {
-            "explode": [0, 5, "explode", 0.5]
-        }
-    });
 
     //UI overlay
     var ol = new createjs.Bitmap(preload.getResult("Overlay"));
@@ -313,6 +339,12 @@ function setControls() {
 //Enemy Functions
 
 function spawnEnemy() {
+    var enemy = new createjs.Container();
+
+    var randY = Math.floor((525 * Math.random()));
+    enemy.x = 1300;
+    enemy.y = randY;
+
     var rando = Math.floor(5 * Math.random());
     if (rando == 4)
         image = preload.getResult("EnemyPurple");
@@ -320,17 +352,18 @@ function spawnEnemy() {
         image = preload.getResult("EnemyRed");
     enemyBitmap = new createjs.Bitmap(image);
 
-    var randY = Math.floor((525 * Math.random()));
-    enemyBitmap.x = 1300;
-    enemyBitmap.y = randY;
+    var eburn = new createjs.Sprite(eEngine, "burn");
+    eburn.set({ x: 115, y: -5, scaleX: 1.1, scaleY: 1.1 });
+
+    enemy.addChild(eburn, enemyBitmap);
 
     if (rando == 4) {
-        enemies.push({ id: "purple", image: enemyBitmap, lives: 2 });
+        enemies.push({ id: "purple", image: enemy, lives: 2 });
     }
     else {
-        enemies.push({ id: "red", image: enemyBitmap, lives: 1 });
+        enemies.push({ id: "red", image: enemy, lives: 1 });
     }
-    stage.addChild(enemyBitmap);
+    stage.addChild(enemy);
 }
 
 function spawnRate() {
