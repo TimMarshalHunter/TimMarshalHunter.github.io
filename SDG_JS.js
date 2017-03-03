@@ -9,8 +9,11 @@ var playerY = 300;
 const ARROW_KEY_Up = 87
 const ARROW_KEY_Down = 83;
 const SPACE_KEY = 32;
+const RAPID_FIRE_KEY = 81;
 var upKey = false;
 var downKey = false;
+
+var rapidFire = false;
 var playerDY = 15;
 var lives = [];
 
@@ -19,6 +22,7 @@ var enemies = [];
 var redEnemySpeed = 5;
 var purpleEnemySpeed = 3;
 var spawnInterval = 90;
+
 
 //Game variables
 var stage;
@@ -31,16 +35,22 @@ var gameOverText = new createjs.Text("GAME OVER", "120px Arial", "#ffffff");
 var started = false;
 var startDisplayed = false;
 var startScreen;
-var preload;
+var preload = false;
 var timer = 0;
 var score = 0;
 var scoreText = new createjs.Text("Score: ", "60px Arial", "#ffffff");
+var con;
+var charge, chargeBar;
+
 
 //Effects
-var exSheet; //Explosion sprite sheet
-var eEngine; //Enemy thruster sprite sheet
+var exSheet; //Explosion sprite
 var blast;
 var laser;
+var eEngine; //Enemy thruster sprite sheet
+
+
+//
 
 
 //Scene Functions
@@ -52,21 +62,22 @@ function load() {
     preload.addEventListener("complete", init);
 
     preload.loadManifest([
-        { id: "Background", src: "/assets/Background.png" },
-        { id: "Overlay", src: "/assets/Overlay.png" },
-        { id: "PlayerShip", src: "/assets/PlayerShip.png" },
-        { id: "EnemyRed", src: "/assets/EnemyShip1.png" },
-        { id: "EnemyPurple", src: "/assets/EnemyShip2.png" },
-        { id: "ShotBlue", src: "/assets/ShotBlue.png" },
-        { id: "ShotPurple", src: "/assets/ShotPurple.png" },
-        { id: "Explosion", src: "/assets/Explosion.png" },
-        { id: "EnemyEngine", src: "/assets/EnemyEngine.png" },
-        { id: "PlayerEngine", src: "/assets/PlayerEngine.png"},
-        { id: "Music", src: "/assets/WindSprite.mp3" },
-        { id: "Blast", src: "/assets/Blast.mp3" },
-        { id: "Laser", src: "/assets/Laser.mp3" }
-        ]);
-  
+ 	{ id: "Background", src: "/assets/Background.png" },
+ 	{ id: "Overlay", src: "/assets/Overlay.png" },
+ 	{ id: "PlayerShip", src: "/assets/PlayerShip.png" },
+ 	{ id: "EnemyRed", src: "/assets/EnemyShip1.png" },
+ 	{ id: "EnemyPurple", src: "/assets/EnemyShip2.png" },
+ 	{ id: "ShotBlue", src: "/assets/ShotBlue.png" },
+ 	{ id: "ShotPurple", src: "/assets/ShotPurple.png" },
+ 	{ id: "Explosion", src: "/assets/Explosion.png" },
+ 	{ id: "EnemyEngine", src: "/assets/EnemyEngine.png" },
+ 	{ id: "PlayerEngine", src: "/assets/PlayerEngine.png" },
+ 	{ id: "Music", src: "/assets/WindSprite.mp3" },
+ 	{ id: "Blast", src: "/assets/Blast.mp3" },
+ 	{ id: "Laser", src: "/assets/Laser.mp3" }
+    ]);
+
+
     preload.load();
 }
 
@@ -81,11 +92,15 @@ function init() {
     bg.setTransform(0, 0, 1, 1);
     stage.addChild(bg);
 
-    //Sprite Sheet creation
+
+
+
+    // spirite sheet creation
+
     exSheet = new createjs.SpriteSheet({
         framerate: 30,
         images: [preload.getResult("Explosion")],
-        frames: { width: 150, height: 150, count: 6},
+        frames: { width: 150, height: 150, count: 6 },
         animations: {
             "explode": [0, 5, "explode", 0.5]
         }
@@ -109,11 +124,12 @@ function init() {
         }
     });
 
+
     //Create player
     player = new createjs.Container();
     player.set({ x: playerX, y: playerY });
     var burn = new createjs.Sprite(pEngine, "burn");
-    burn.set({ x: -20});
+    burn.set({ x: -20 });
     player.addChild(burn);
     playerImage = new createjs.Bitmap(preload.getResult("PlayerShip"));
     player.addChild(playerImage);
@@ -121,8 +137,28 @@ function init() {
     stage.addEventListener("mousedown", createBullet);
     setControls();
 
+
+
+    // Restart creation
+    var view = new createjs.Text("RESTART", "40px Arial", "#ffffff");
+    view.set({ x: -82, y: -22 });
+
+    con = new createjs.Container();
+    con.set({ x: 600, y: 500 });
+    var circle = new createjs.Shape();
+    circle.graphics.setStrokeStyle(8).beginStroke("#610c70").beginFill("purple").drawCircle(10, 0, 100);
+    con.addChild(circle);
+    con.addChild(view);
+    con.addEventListener("click", restart);
+
+
+
+
+
     //Play background music
     createjs.Sound.play('Music', createjs.Sound.INTERRUPT_NONE, 0, 0, -1, .5, 0);
+
+
 
     //UI overlay
     var ol = new createjs.Bitmap(preload.getResult("Overlay"));
@@ -136,13 +172,37 @@ function init() {
     //Setup lives display
     createLives();
 
+    createChargeBar();
     //Create start screen
     createStartScreen();
+
+
 
     //TODO create stage, create bitmaps, start ticker
     //TODO add event listeners
 
 }
+
+
+
+function restart() {
+
+    charge = 150;
+    timer = 0;
+    redEnemySpeed = 5;
+    purpleEnemySpeed = 3;
+    spawnInterval = 90;
+    gameOver = false;
+    score = 0;
+    clearEnemies();
+    createLives();
+    createjs.Ticker.setPaused(false);
+    stage.removeChild(con);
+    stage.removeChild(gameOverText);
+    stage.update();
+}
+
+
 
 function tick() {
     if (started && !paused && !gameOver) {
@@ -151,8 +211,10 @@ function tick() {
         movePlayer();
         moveEnemy();
         moveShot();
+        purpleFire();
         checkHit();
         updateScore();
+        updateCharge();
         stage.update();
     } else if (!started) {
         if (!startDisplayed) {
@@ -161,6 +223,7 @@ function tick() {
         stage.update();
     } else if (gameOver) {
         gameOverText.x = 220; gameOverText.y = 250;
+        stage.addChild(con);
         stage.addChild(gameOverText);
         stage.update();
     }
@@ -180,19 +243,20 @@ function createStartScreen() {
 
     //Controls
     var controlBox = new createjs.Shape().set({ x: 60, y: 40 });
-    controlBox.graphics.setStrokeStyle(8).beginStroke("white").beginFill("purple").drawRect(0, 0, 520, 380);
+    controlBox.graphics.setStrokeStyle(8).beginStroke("#610c70").beginFill("purple").drawRect(0, 0, 520, 380);
 
     var upText = new createjs.Text("W key to move up.", "50px Arial", "#ffffff").set({ x: 110, y: 50 });
-    var downText = new createjs.Text("S key to move down.", "50px Arial", "#ffffff").set({ x: 90, y: 150 });
-    var fireText = new createjs.Text("Left Click to fire shots.", "50px Arial", "#ffffff").set({ x: 70, y: 250 });
+    var downText = new createjs.Text("S key to move down.", "50px Arial", "#ffffff").set({ x: 90, y: 125 });
+    var rapidText = new createjs.Text("Q key to rapid fire.", "50px Arial", "#ffffff").set({ x: 110, y: 200 });
+    var fireText = new createjs.Text("Left Click to fire shots.", "50px Arial", "#ffffff").set({ x: 70, y: 275 });
     var spaceText = new createjs.Text("Space Bar to pause.", "50px Arial", "#ffffff").set({ x: 92, y: 350 });
 
     var controls = new createjs.Container();
-    controls.addChild(controlBox, upText, downText, fireText, spaceText);
+    controls.addChild(controlBox, upText, downText, rapidText, fireText, spaceText);
 
     //Top Scores
     var scoreBox = new createjs.Shape().set({ x: 620, y: 40 });
-    scoreBox.graphics.setStrokeStyle(8).beginStroke("white").beginFill("purple").drawRect(0, 0, 520, 380);
+    scoreBox.graphics.setStrokeStyle(8).beginStroke("#610c70").beginFill("purple").drawRect(0, 0, 520, 380);
 
     var ts = new createjs.Text("Top Scores", "50px Arial", "#ffffff").set({ x: 760, y: 50 });
     var score1 = new createjs.Text("Name : Score", "40px Arial", "#ffffff").set({ x: 650, y: 120 });
@@ -206,7 +270,7 @@ function createStartScreen() {
 
     //Start button
     var startBox = new createjs.Shape().set({ x: 400, y: 500 });
-    startBox.graphics.setStrokeStyle(8).beginStroke("white").beginFill("purple").drawRect(0, 0, 400, 150);
+    startBox.graphics.setStrokeStyle(8).beginStroke("#610c70").beginFill("purple").drawRect(0, 0, 400, 150);
     var startText = new createjs.Text("START", "100px Arial", "#ffffff").set({ x: 432, y: 520 });
     startBox.addEventListener("click", removeStartScreen);
     startText.addEventListener("click", removeStartScreen);
@@ -230,6 +294,34 @@ function removeStartScreen() {
     startDisplayed = false;
     started = true;
 }
+
+function createChargeBar() {
+    charge = 150;
+    var chargeText = new createjs.Text("RAPID FIRE CHARGE", "20px Arial", "#ffffff");
+    chargeText.set({ x: 498, y: 675 });
+
+    var outline = new createjs.Shape();
+    outline.graphics.setStrokeStyle(3).beginStroke("#fff").drawRect(525, 620, 150, 50);
+
+    chargeBar = new createjs.Shape();
+    chargeBar.graphics.beginFill("green").drawRect(525, 620, charge, 50);
+
+    stage.addChild(chargeText, chargeBar, outline);
+}
+
+function updateCharge() {
+    if (rapidFire && charge >= 0) {
+        charge -= 2;
+    }
+    else {
+        if (timer % 30 == 0 && charge <= 150) {
+            charge += 2;
+        }
+    }
+    chargeBar.graphics.clear();
+    chargeBar.graphics.beginFill("green").drawRect(525, 620, charge, 50);
+}
+
 
 
 //Player Functions
@@ -315,6 +407,8 @@ function handleKeyDown(e) {
             break;
         case ARROW_KEY_Down: downKey = true;
             break;
+        case RAPID_FIRE_KEY: rapidFire = true;
+            break;
     }
 }
 
@@ -322,6 +416,8 @@ function handleKeyUp(e) {
     switch (e.keyCode) {
         case SPACE_KEY:
             pauseGame();
+            break;
+        case RAPID_FIRE_KEY: rapidFire = false;
             break;
         case ARROW_KEY_Up: upKey = false;
             break;
@@ -332,6 +428,21 @@ function handleKeyUp(e) {
 function setControls() {
     window.onkeydown = handleKeyDown;
     window.onkeyup = handleKeyUp;
+}
+function purpleFire() {
+
+    if (rapidFire && charge > 0) {
+        image = preload.getResult("ShotPurple");
+        var bullet2 = new createjs.Bitmap(image);
+        bullet2.x = player.x + 120; bullet2.y = player.y + 35;
+        stage.addChild(bullet2);
+        bullets.push(bullet2);
+        if (laser != null) {
+            laser.stop();
+        }
+        laser = createjs.Sound.play('Laser', createjs.Sound.INTERRUPT_NONE, 0, 0, 0, .5, 0);
+    }
+
 }
 
 
@@ -366,6 +477,7 @@ function spawnEnemy() {
     stage.addChild(enemy);
 }
 
+
 function spawnRate() {
     if (timer % 300 == 0) {
         redEnemySpeed++;
@@ -388,8 +500,7 @@ function checkHit() {
             if ((bullets[j].x + 35) >= (enemies[i].image.x + 45)) {
                 if ((enemies[i].image.x < 1150)
                     && ((bullets[j].y + 7) <= (enemies[i].image.y + 60))
-                    && ((bullets[j].y + 14) >= (enemies[i].image.y + 10)))
-                {
+                    && ((bullets[j].y + 14) >= (enemies[i].image.y + 10))) {
                     destroy(enemies[i], i, true);
                     stage.removeChild(bullets[j]);
                     bullets.splice(j, 1);
@@ -400,7 +511,7 @@ function checkHit() {
     }
 }
 
-function destroy(enemy, index, killed){
+function destroy(enemy, index, killed) {
     //Death explosion at enemy location
     enemy.lives -= 1;
 
@@ -419,9 +530,17 @@ function destroy(enemy, index, killed){
     }
 }
 
+function clearEnemies() {
+    var j = enemies.length;
+    for (var i = 0; i < j; i++) {
+        enemies[0].lives = 0;
+        destroy(enemies[0], 0, false);
+    }
+}
+
 function explodeEnemy(enemy) {
     var explosion = new createjs.Sprite(exSheet, "explode");
-    explosion.set({x: enemy.image.x, y: enemy.image.y - 30});
+    explosion.set({ x: enemy.image.x, y: enemy.image.y - 30 });
     stage.addChild(explosion);
     if (blast != null) {
         blast.stop();
@@ -442,3 +561,6 @@ function moveEnemy() {
         }
     }
 }
+
+
+
