@@ -41,6 +41,8 @@ var score = 0;
 var scoreText = new createjs.Text("Score: ", "60px Arial", "#ffffff");
 var con;
 var charge, chargeBar;
+var topScores = new createjs.Container();
+var firstStart = true;
 
 
 //Effects
@@ -48,6 +50,7 @@ var exSheet; //Explosion sprite
 var blast;
 var laser;
 var eEngine; //Enemy thruster sprite sheet
+var scores = [5];
 
 
 //
@@ -193,6 +196,7 @@ function restart() {
     purpleEnemySpeed = 3;
     spawnInterval = 90;
     gameOver = false;
+    started = false;
     score = 0;
     clearEnemies();
     createLives();
@@ -218,6 +222,7 @@ function tick() {
         stage.update();
     } else if (!started) {
         if (!startDisplayed) {
+            createScores();
             displayStartScreen();
         }
         stage.update();
@@ -253,20 +258,7 @@ function createStartScreen() {
 
     var controls = new createjs.Container();
     controls.addChild(controlBox, upText, downText, rapidText, fireText, spaceText);
-
-    //Top Scores
-    var scoreBox = new createjs.Shape().set({ x: 620, y: 40 });
-    scoreBox.graphics.setStrokeStyle(8).beginStroke("#610c70").beginFill("purple").drawRect(0, 0, 520, 380);
-
-    var ts = new createjs.Text("Top Scores", "50px Arial", "#ffffff").set({ x: 760, y: 50 });
-    var score1 = new createjs.Text("Name : Score", "40px Arial", "#ffffff").set({ x: 650, y: 120 });
-    var score2 = new createjs.Text("Name : Score", "40px Arial", "#ffffff").set({ x: 650, y: 180 });
-    var score3 = new createjs.Text("Name : Score", "40px Arial", "#ffffff").set({ x: 650, y: 240 });
-    var score4 = new createjs.Text("Name : Score", "40px Arial", "#ffffff").set({ x: 650, y: 300 });
-    var score5 = new createjs.Text("Name : Score", "40px Arial", "#ffffff").set({ x: 650, y: 360 });
-
-    var topScores = new createjs.Container();
-    topScores.addChild(scoreBox, ts, score1, score2, score3, score4, score5);
+    
 
     //Start button
     var startBox = new createjs.Shape().set({ x: 400, y: 500 });
@@ -281,6 +273,33 @@ function createStartScreen() {
     //Start Screen
     startScreen = new createjs.Container();
     startScreen.addChild(greyBack, controls, topScores, startButton);
+}
+
+function createScores() {
+    for (var i = 0; i < topScores.numChildren; i++) {
+        topScores.removeChildAt(i);
+    }
+    var scoreBox = new createjs.Shape().set({ x: 620, y: 40 });
+    scoreBox.graphics.setStrokeStyle(8).beginStroke("#610c70").beginFill("purple").drawRect(0, 0, 520, 380);
+    var ts = new createjs.Text("Top Scores", "50px Arial", "#ffffff").set({ x: 760, y: 50 });
+    topScores.addChild(scoreBox, ts);
+
+    if (!firstStart) {
+        var person = prompt("Please enter your name: ");
+        person = person.toUpperCase();
+        scores.sort(function (a, b) { return b - a });
+        for (i = 0; i < 5; i++) {
+            var nextScore;
+            if (scores[i] == null || scores[i] <= 50)
+                nextScore = new createjs.Text("---", "40px Arial", "#ffffff");
+            else
+                nextScore = new createjs.Text( person + " : " + scores[i], "40px Arial", "#ffffff");
+
+            nextScore.set({ x: 650, y: 120 + 60 * i });
+            topScores.addChild(nextScore);
+        }
+    }
+    firstStart = false;
 }
 
 function displayStartScreen() {
@@ -343,11 +362,13 @@ function updateLives() {
     else {
         stage.removeChild(lives.pop());
         gameOver = true;
+        scores.push(score);
+
     }
 }
 
 function createBullet() {
-    if (started) {
+    if (started && !gameOver && !paused) {
         image = preload.getResult("ShotBlue");
         var bullet = new createjs.Bitmap(image);
         bullet.x = player.x + 100; bullet.y = player.y + 35;
@@ -466,13 +487,19 @@ function spawnEnemy() {
     var eburn = new createjs.Sprite(eEngine, "burn");
     eburn.set({ x: 115, y: -5, scaleX: 1.1, scaleY: 1.1 });
 
-    enemy.addChild(eburn, enemyBitmap);
+    var outline = new createjs.Shape();
+    outline.graphics.setStrokeStyle(1.5).beginStroke("#fff").drawRect(25, -10, 100, 10);
+
+    var healthBar = new createjs.Shape();
+    healthBar.graphics.beginFill("green").drawRect(25, -10, 100, 10);
+
+    enemy.addChild(eburn, enemyBitmap, outline, healthBar);
 
     if (rando == 4) {
-        enemies.push({ id: "purple", image: enemy, lives: 2 });
+        enemies.push({ id: "purple", image: enemy, lives: 3 });
     }
     else {
-        enemies.push({ id: "red", image: enemy, lives: 1 });
+        enemies.push({ id: "red", image: enemy, lives: 2 });
     }
     stage.addChild(enemy);
 }
@@ -514,15 +541,23 @@ function checkHit() {
 function destroy(enemy, index, killed) {
     //Death explosion at enemy location
     enemy.lives -= 1;
+    if (enemy.id == "red") {
+        enemy.image.getChildAt(3).graphics.clear();
+        enemy.image.getChildAt(3).graphics.beginFill("green").drawRect(25, -10, 50 * enemy.lives, 10);
+    }
+    else {
+        enemy.image.getChildAt(3).graphics.clear();
+        enemy.image.getChildAt(3).graphics.beginFill("green").drawRect(25, -10, 33 * enemy.lives, 10);
+    }
 
-    if (enemy.lives > 0) {
+    if (enemy.lives > 0 && killed) {
         return;
     }
     else {
         stage.removeChild(enemy.image);
         explodeEnemy(enemy);
         enemies.splice(index, 1);
-        if (enemy.id == "red" && killed)
+        if (enemy.id == "red" && killed) 
             score += 100;
         if (enemy.id == "purple" && killed)
             score += 300;
@@ -561,6 +596,8 @@ function moveEnemy() {
         }
     }
 }
+
+
 
 
 
