@@ -339,6 +339,7 @@
             function toggleDropButtons(){
                 for(var i = 1; i < dropList.numChildren; i++)
                     dropList.getChildAt(i).visible = !dropList.getChildAt(i).visible;
+		if (update) stage.update();
             }
             toggleDropButtons();
 
